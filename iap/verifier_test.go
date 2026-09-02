@@ -31,12 +31,12 @@ func TestVerifyAccessTokenAndPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	token := signedToken(t, privateKey, map[string]any{"iss": issuer, "sub": "user-1", "aud": []string{"urn:bumame:cis"}, "exp": time.Now().Add(time.Minute).Unix(), "ext": map[string]any{"roles": []string{"cis.doctor"}, "permissions": []string{"cis.patient.read"}}})
+	token := signedToken(t, privateKey, map[string]any{"iss": issuer, "sub": "user-1", "aud": []string{"urn:bumame:cis"}, "exp": time.Now().Add(time.Minute).Unix(), "picture": "https://example.com/avatar.jpg", "ext": map[string]any{"roles": []string{"cis.doctor"}, "permissions": []string{"cis.patient.read"}}})
 	principal, err := verifier.Verify(context.Background(), token)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if principal.Subject != "user-1" || !principal.HasRole("cis.doctor") || !principal.HasPermission("cis.patient.read") {
+	if principal.Subject != "user-1" || principal.Picture != "https://example.com/avatar.jpg" || !principal.HasRole("cis.doctor") || !principal.HasPermission("cis.patient.read") {
 		t.Fatalf("unexpected principal: %+v", principal)
 	}
 }

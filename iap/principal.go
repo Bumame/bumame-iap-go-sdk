@@ -8,6 +8,7 @@ type Principal struct {
 	Audience    []string `json:"aud"`
 	Email       string   `json:"email,omitempty"`
 	Name        string   `json:"name,omitempty"`
+	Picture     string   `json:"picture,omitempty"`
 	Roles       []string `json:"roles"`
 	Permissions []string `json:"permissions"`
 }

@@ -88,11 +88,13 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Principal, error) {
 		NotBefore int64           `json:"nbf"`
 		Email     string          `json:"email"`
 		Name      string          `json:"name"`
+		Picture   string          `json:"picture"`
 		Ext       struct {
 			Roles       []string `json:"roles"`
 			Permissions []string `json:"permissions"`
 			Email       string   `json:"email"`
 			Name        string   `json:"name"`
+			Picture     string   `json:"picture"`
 		} `json:"ext"`
 	}
 	if err := decodePart(parts[1], &claims); err != nil {
@@ -109,14 +111,17 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Principal, error) {
 	if claims.NotBefore != 0 && now.Add(v.cfg.ClockSkew).Before(time.Unix(claims.NotBefore, 0)) {
 		return Principal{}, ErrInvalidToken
 	}
-	email, name := claims.Email, claims.Name
+	email, name, picture := claims.Email, claims.Name, claims.Picture
 	if email == "" {
 		email = claims.Ext.Email
 	}
 	if name == "" {
 		name = claims.Ext.Name
 	}
-	return Principal{Subject: claims.Subject, Issuer: claims.Issuer, Audience: audiences, Email: email, Name: name, Roles: claims.Ext.Roles, Permissions: claims.Ext.Permissions}, nil
+	if picture == "" {
+		picture = claims.Ext.Picture
+	}
+	return Principal{Subject: claims.Subject, Issuer: claims.Issuer, Audience: audiences, Email: email, Name: name, Picture: picture, Roles: claims.Ext.Roles, Permissions: claims.Ext.Permissions}, nil
 }
 
 func (v *Verifier) key(ctx context.Context, kid string, force bool) (*rsa.PublicKey, error) {
