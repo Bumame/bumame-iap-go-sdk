@@ -3,14 +3,20 @@ package iap
 import "context"
 
 type Principal struct {
-	Subject     string   `json:"sub"`
-	Issuer      string   `json:"iss"`
-	Audience    []string `json:"aud"`
-	Email       string   `json:"email,omitempty"`
-	Name        string   `json:"name,omitempty"`
-	Picture     string   `json:"picture,omitempty"`
-	Roles       []string `json:"roles"`
-	Permissions []string `json:"permissions"`
+	Subject        string                   `json:"sub"`
+	Issuer         string                   `json:"iss"`
+	Audience       []string                 `json:"aud"`
+	Email          string                   `json:"email,omitempty"`
+	Name           string                   `json:"name,omitempty"`
+	Picture        string                   `json:"picture,omitempty"`
+	Roles          []string                 `json:"roles"`
+	Permissions    []string                 `json:"permissions"`
+	ResourceScopes map[string]ResourceScope `json:"resource_scopes"`
+}
+
+type ResourceScope struct {
+	Mode string   `json:"mode"`
+	IDs  []string `json:"ids"`
 }
 
 func (p Principal) HasRole(role string) bool             { return contains(p.Roles, role) }
@@ -18,6 +24,14 @@ func (p Principal) HasAnyRole(roles ...string) bool      { return containsAny(p.
 func (p Principal) HasPermission(permission string) bool { return contains(p.Permissions, permission) }
 func (p Principal) HasAnyPermission(permissions ...string) bool {
 	return containsAny(p.Permissions, permissions)
+}
+
+func (p Principal) HasResource(resourceType, resourceID string) bool {
+	scope, ok := p.ResourceScopes[resourceType]
+	if !ok {
+		return false
+	}
+	return scope.Mode == "all" || (scope.Mode == "selected" && contains(scope.IDs, resourceID))
 }
 
 func contains(items []string, wanted string) bool {

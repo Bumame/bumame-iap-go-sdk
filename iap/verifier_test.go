@@ -31,13 +31,26 @@ func TestVerifyAccessTokenAndPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	token := signedToken(t, privateKey, map[string]any{"iss": issuer, "sub": "user-1", "aud": []string{"urn:bumame:cis"}, "exp": time.Now().Add(time.Minute).Unix(), "picture": "https://example.com/avatar.jpg", "ext": map[string]any{"roles": []string{"cis.doctor"}, "permissions": []string{"cis.patient.read"}}})
+	token := signedToken(t, privateKey, map[string]any{"iss": issuer, "sub": "user-1", "aud": []string{"urn:bumame:cis"}, "exp": time.Now().Add(time.Minute).Unix(), "picture": "https://example.com/avatar.jpg", "ext": map[string]any{"roles": []string{"cis.doctor"}, "permissions": []string{"cis.patient.read"}, "resource_scopes": map[string]any{"cis.clinics": map[string]any{"mode": "selected", "ids": []string{"12"}}}}})
 	principal, err := verifier.Verify(context.Background(), token)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if principal.Subject != "user-1" || principal.Picture != "https://example.com/avatar.jpg" || !principal.HasRole("cis.doctor") || !principal.HasPermission("cis.patient.read") {
+	if principal.Subject != "user-1" || principal.Picture != "https://example.com/avatar.jpg" || !principal.HasRole("cis.doctor") || !principal.HasPermission("cis.patient.read") || !principal.HasResource("cis.clinics", "12") {
 		t.Fatalf("unexpected principal: %+v", principal)
+	}
+}
+
+func TestPrincipalHasResource(t *testing.T) {
+	principal := Principal{ResourceScopes: map[string]ResourceScope{
+		"cis.clinics": {Mode: "selected", IDs: []string{"12", "18"}},
+		"crm.regions": {Mode: "all", IDs: []string{}},
+	}}
+	if !principal.HasResource("cis.clinics", "12") || principal.HasResource("cis.clinics", "99") {
+		t.Fatal("selected resource scope was not enforced")
+	}
+	if !principal.HasResource("crm.regions", "any") || principal.HasResource("missing", "12") {
+		t.Fatal("all or missing resource scope was not enforced")
 	}
 }
 

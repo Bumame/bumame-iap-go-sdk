@@ -90,11 +90,12 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Principal, error) {
 		Name      string          `json:"name"`
 		Picture   string          `json:"picture"`
 		Ext       struct {
-			Roles       []string `json:"roles"`
-			Permissions []string `json:"permissions"`
-			Email       string   `json:"email"`
-			Name        string   `json:"name"`
-			Picture     string   `json:"picture"`
+			Roles          []string                 `json:"roles"`
+			Permissions    []string                 `json:"permissions"`
+			ResourceScopes map[string]ResourceScope `json:"resource_scopes"`
+			Email          string                   `json:"email"`
+			Name           string                   `json:"name"`
+			Picture        string                   `json:"picture"`
 		} `json:"ext"`
 	}
 	if err := decodePart(parts[1], &claims); err != nil {
@@ -121,7 +122,7 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Principal, error) {
 	if picture == "" {
 		picture = claims.Ext.Picture
 	}
-	return Principal{Subject: claims.Subject, Issuer: claims.Issuer, Audience: audiences, Email: email, Name: name, Picture: picture, Roles: claims.Ext.Roles, Permissions: claims.Ext.Permissions}, nil
+	return Principal{Subject: claims.Subject, Issuer: claims.Issuer, Audience: audiences, Email: email, Name: name, Picture: picture, Roles: claims.Ext.Roles, Permissions: claims.Ext.Permissions, ResourceScopes: claims.Ext.ResourceScopes}, nil
 }
 
 func (v *Verifier) key(ctx context.Context, kid string, force bool) (*rsa.PublicKey, error) {
