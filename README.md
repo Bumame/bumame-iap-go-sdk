@@ -5,7 +5,7 @@ Shared authentication and authorization helpers for Bumame Go backends.
 ## Install
 
 ```bash
-go get github.com/Bumame/bumame-iap-go-sdk@v1.0.0
+go get github.com/Bumame/bumame-iap-go-sdk@v1.2.0
 ```
 
 The package repository is public; applications should still pin a released tag.
@@ -13,18 +13,25 @@ The package repository is public; applications should still pin a released tag.
 ## Usage
 
 ```go
-verifier, err := iap.NewVerifier(iap.Config{
+auth, err := iap.NewFiberAuth(iap.Config{
     Issuer:   "https://auth.bumame.com",
     Audience: "urn:bumame:cis",
 })
 if err != nil { log.Fatal(err) }
 
 app.Get("/patients/:id",
-    verifier.Authenticate(),
+    auth.Authenticate(),
     iap.RequireAnyPermission("cis.patient.read"),
     getPatient,
 )
 ```
+
+`NewFiberAuth` is created once during startup and passed directly to normal
+Fiber route groups. It has no application database, global mutable runtime, or
+legacy-user adapter. In handlers, read the authenticated identity with
+`PrincipalFromFiber`, `IAPIDFromFiber`, `RolesFromFiber`, or
+`PermissionsFromFiber`. Persist `IAPIDFromFiber` in UUID columns named
+`iap_id` or `*_iap_id`.
 
 Use `RequireAnyRole` only while migrating legacy role checks. New endpoints should use permissions and must still enforce resource ownership in the application backend.
 

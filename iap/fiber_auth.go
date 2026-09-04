@@ -19,9 +19,8 @@ func NewFiberAuth(cfg Config) (*FiberAuth, error) {
 	return &FiberAuth{verifier: verifier}, nil
 }
 
-// Authenticate verifies the IAP bearer token and then runs optional
-// application-owned enrichers. Token parsing, claims normalization and error
-// responses remain SDK-owned; enrichers are only for local business context.
-func (a *FiberAuth) Authenticate(enrichers ...PrincipalEnricher) fiber.Handler {
-	return a.verifier.AuthenticateWith(enrichers...)
+// Authenticate verifies the IAP bearer token, normalizes its claims, and
+// stores a typed Principal in Fiber Locals and the request context.
+func (a *FiberAuth) Authenticate() fiber.Handler {
+	return a.verifier.Authenticate()
 }

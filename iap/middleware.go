@@ -14,36 +14,6 @@ type resourceInt64LocalKey struct{ resourceType string }
 // Authenticate validates the IAP bearer token and makes the principal available
 // to both Fiber handlers and downstream context.Context-aware services.
 func (v *Verifier) Authenticate() fiber.Handler {
-	return v.AuthenticateWith()
-}
-
-type PrincipalEnricher func(*fiber.Ctx, Principal) error
-
-// Int64ResourceHeaderEnricher validates a numeric resource header against IAP
-// resource scopes and stores the parsed ID in Fiber Locals for business code.
-func Int64ResourceHeaderEnricher(resourceType, header, localKey string) PrincipalEnricher {
-	return func(c *fiber.Ctx, principal Principal) error {
-		value := strings.TrimSpace(c.Get(header))
-		if value == "" {
-			return writeAuthError(c, fiber.StatusBadRequest, "resource_context_required")
-		}
-		id, err := strconv.ParseInt(value, 10, 64)
-		if err != nil || id <= 0 {
-			return writeAuthError(c, fiber.StatusBadRequest, "invalid_resource_context")
-		}
-		if !principal.HasResource(resourceType, value) {
-			return writeAuthError(c, fiber.StatusForbidden, "resource_forbidden")
-		}
-		c.Locals(localKey, id)
-		return nil
-	}
-}
-
-// AuthenticateWith validates the bearer token, stores the typed Principal,
-// then runs application-owned context enrichers before the protected handler.
-// Enrichers are for business projections (for example IAP subject -> legacy
-// actor ID), never for parsing or authorizing the token again.
-func (v *Verifier) AuthenticateWith(enrichers ...PrincipalEnricher) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		scheme, token, ok := strings.Cut(strings.TrimSpace(c.Get(fiber.HeaderAuthorization)), " ")
 		if !ok || !strings.EqualFold(scheme, "Bearer") || strings.TrimSpace(token) == "" {
@@ -56,11 +26,6 @@ func (v *Verifier) AuthenticateWith(enrichers ...PrincipalEnricher) fiber.Handle
 
 		c.Locals(PrincipalLocalKey, principal)
 		c.SetUserContext(WithPrincipal(c.UserContext(), principal))
-		for _, enrich := range enrichers {
-			if err := enrich(c, principal); err != nil {
-				return err
-			}
-		}
 		return c.Next()
 	}
 }
@@ -78,6 +43,24 @@ func IAPIDFromFiber(c *fiber.Ctx) (string, bool) {
 		return "", false
 	}
 	return principal.Subject, true
+}
+
+// RolesFromFiber returns a defensive copy of the authenticated roles.
+func RolesFromFiber(c *fiber.Ctx) ([]string, bool) {
+	principal, ok := PrincipalFromFiber(c)
+	if !ok {
+		return nil, false
+	}
+	return append([]string(nil), principal.Roles...), true
+}
+
+// PermissionsFromFiber returns a defensive copy of the authenticated permissions.
+func PermissionsFromFiber(c *fiber.Ctx) ([]string, bool) {
+	principal, ok := PrincipalFromFiber(c)
+	if !ok {
+		return nil, false
+	}
+	return append([]string(nil), principal.Permissions...), true
 }
 
 func RequireAnyRole(roles ...string) fiber.Handler {

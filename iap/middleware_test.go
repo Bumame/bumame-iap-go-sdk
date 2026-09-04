@@ -46,6 +46,36 @@ func TestIAPIDFromFiber(t *testing.T) {
 	}
 }
 
+func TestRoleAndPermissionAccessorsReturnCopies(t *testing.T) {
+	app := fiber.New()
+	app.Get("/me", func(c *fiber.Ctx) error {
+		original := Principal{
+			Roles:       []string{"cis.doctor"},
+			Permissions: []string{"cis.encounter.read"},
+		}
+		c.Locals(PrincipalLocalKey, original)
+		roles, rolesOK := RolesFromFiber(c)
+		permissions, permissionsOK := PermissionsFromFiber(c)
+		if !rolesOK || !permissionsOK {
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+		roles[0] = "mutated"
+		permissions[0] = "mutated"
+		stored, _ := PrincipalFromFiber(c)
+		if stored.Roles[0] != "cis.doctor" || stored.Permissions[0] != "cis.encounter.read" {
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+		return c.SendStatus(fiber.StatusNoContent)
+	})
+	response, err := app.Test(httptest.NewRequest(http.MethodGet, "/me", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != fiber.StatusNoContent {
+		t.Fatalf("status = %d, want %d", response.StatusCode, fiber.StatusNoContent)
+	}
+}
+
 func TestRequireAnyRoleRejectsNonMatchingPrincipal(t *testing.T) {
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
