@@ -27,6 +27,25 @@ func TestRequireAnyPermissionAllowsMatchingPrincipal(t *testing.T) {
 	}
 }
 
+func TestIAPIDFromFiber(t *testing.T) {
+	app := fiber.New()
+	app.Get("/me", func(c *fiber.Ctx) error {
+		c.Locals(PrincipalLocalKey, Principal{Subject: "5a40f2f5-1d63-45e8-8799-d31977c09f91"})
+		id, ok := IAPIDFromFiber(c)
+		if !ok || id != "5a40f2f5-1d63-45e8-8799-d31977c09f91" {
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+		return c.SendStatus(fiber.StatusNoContent)
+	})
+	response, err := app.Test(httptest.NewRequest(http.MethodGet, "/me", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != fiber.StatusNoContent {
+		t.Fatalf("status = %d, want %d", response.StatusCode, fiber.StatusNoContent)
+	}
+}
+
 func TestRequireAnyRoleRejectsNonMatchingPrincipal(t *testing.T) {
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
@@ -55,6 +74,10 @@ func TestRequireInt64ResourceFromHeader(t *testing.T) {
 		return c.Next()
 	})
 	app.Get("/encounters", RequireInt64ResourceFromHeader("cis.clinics", "X-Clinic-ID"), func(c *fiber.Ctx) error {
+		id, ok := Int64ResourceFromFiber(c, "cis.clinics")
+		if !ok || id != 7 {
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
 		return c.SendStatus(fiber.StatusNoContent)
 	})
 

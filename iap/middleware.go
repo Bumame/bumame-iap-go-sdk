@@ -9,6 +9,8 @@ import (
 
 const PrincipalLocalKey = "iap_principal"
 
+type resourceInt64LocalKey struct{ resourceType string }
+
 // Authenticate validates the IAP bearer token and makes the principal available
 // to both Fiber handlers and downstream context.Context-aware services.
 func (v *Verifier) Authenticate() fiber.Handler {
@@ -68,6 +70,16 @@ func PrincipalFromFiber(c *fiber.Ctx) (Principal, bool) {
 	return principal, ok
 }
 
+// IAPIDFromFiber returns the immutable IAP subject for the authenticated
+// request. Applications should persist this value in their *_iap_id columns.
+func IAPIDFromFiber(c *fiber.Ctx) (string, bool) {
+	principal, ok := PrincipalFromFiber(c)
+	if !ok || strings.TrimSpace(principal.Subject) == "" {
+		return "", false
+	}
+	return principal.Subject, true
+}
+
 func RequireAnyRole(roles ...string) fiber.Handler {
 	return require(func(p Principal) bool { return p.HasAnyRole(roles...) })
 }
@@ -120,8 +132,17 @@ func RequireInt64ResourceFromHeader(resourceType, header string) fiber.Handler {
 		if !principal.HasResource(resourceType, value) {
 			return writeAuthError(c, fiber.StatusForbidden, "resource_forbidden")
 		}
+		id, _ := strconv.ParseInt(value, 10, 64)
+		c.Locals(resourceInt64LocalKey{resourceType: resourceType}, id)
 		return c.Next()
 	}
+}
+
+// Int64ResourceFromFiber returns a numeric resource context previously
+// validated by RequireInt64ResourceFromHeader.
+func Int64ResourceFromFiber(c *fiber.Ctx, resourceType string) (int64, bool) {
+	id, ok := c.Locals(resourceInt64LocalKey{resourceType: resourceType}).(int64)
+	return id, ok
 }
 
 func require(allowed func(Principal) bool) fiber.Handler {
