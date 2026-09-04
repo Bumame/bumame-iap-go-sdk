@@ -5,7 +5,7 @@ Shared authentication and authorization helpers for Bumame Go backends.
 ## Install
 
 ```bash
-go get github.com/Bumame/bumame-iap-go-sdk@v0.1.0-alpha.3
+go get github.com/Bumame/bumame-iap-go-sdk@v1.0.0
 ```
 
 The package repository is public; applications should still pin a released tag.
@@ -19,10 +19,11 @@ verifier, err := iap.NewVerifier(iap.Config{
 })
 if err != nil { log.Fatal(err) }
 
-router.With(
-    verifier.Authenticate,
+app.Get("/patients/:id",
+    verifier.Authenticate(),
     iap.RequireAnyPermission("cis.patient.read"),
-).Get("/patients/{id}", getPatient)
+    getPatient,
+)
 ```
 
 Use `RequireAnyRole` only while migrating legacy role checks. New endpoints should use permissions and must still enforce resource ownership in the application backend.
