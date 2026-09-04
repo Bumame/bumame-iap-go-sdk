@@ -5,10 +5,10 @@ Shared authentication and authorization helpers for Bumame Go backends.
 ## Install
 
 ```bash
-go get github.com/Bumame/bumame-iap-go-sdk@v0.1.0-alpha.2
+go get github.com/Bumame/bumame-iap-go-sdk@v0.1.0-alpha.3
 ```
 
-Your CI or developer account must have read access because this repository is private.
+The package repository is public; applications should still pin a released tag.
 
 ## Usage
 
