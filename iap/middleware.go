@@ -1,6 +1,7 @@
 package iap
 
 import (
+	"log/slog"
 	"strconv"
 	"strings"
 
@@ -21,6 +22,7 @@ func (v *Verifier) Authenticate() fiber.Handler {
 		}
 		principal, err := v.Verify(c.UserContext(), strings.TrimSpace(token))
 		if err != nil {
+			slog.Warn("IAP access token rejected", "path", c.Path(), "error", err)
 			return writeAuthError(c, fiber.StatusUnauthorized, "invalid_token")
 		}
 
